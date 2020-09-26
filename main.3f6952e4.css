@@ -250,6 +250,15 @@ img{
     object-fit: cover;
 	border-radius:5px;
 }
+.img-fixed{
+	display:block;
+	min-width: 150px;
+	max-width: 150px;
+	min-height: 150px;
+	max-height: 150px;
+    object-fit: cover;
+	border-radius:5px;
+}
 .img-rounded{
 	border-radius:0
 }
@@ -3932,7 +3941,7 @@ blockquote .small,blockquote small{
 	font-size:50%
 }
 .fa-icon{
-	color:#000;
+	color:#fff;
 	width:32px;
 	height:32px;
 	display:inline-block;
@@ -4159,6 +4168,12 @@ textarea{
 }
 .list-icons li{
 	float:left;
-	margin-right:5px
+	margin-right:5px;
+	width: 30%;
 }
+.column {
+  float: left;
+  width: 40%;
+}
+
 /*# sourceMappingURL=main.70a66962.map*/
