@@ -6,7 +6,7 @@
 // Runs daily from GitHub Actions (see lanternbay-reels.yml). Videos and
 // covers are fetched by Meta from their public URLs in the manifest, so
 // nothing is uploaded from here. --check validates the token and IDs and
-// creates (but never publishes) an Instagram container for the given day.
+// prepares (but never publishes) the given day on Instagram and Facebook.
 // Results are appended to published.json next to the manifest; a day that
 // is already there is skipped, so reruns are safe.
 
@@ -74,6 +74,8 @@ async function facebook(entry) {
   });
   const upJson = await up.json().catch(() => ({}));
   if (!up.ok || upJson.success === false) throw new Error(`facebook upload: ${JSON.stringify(upJson).slice(0, 200)}`);
+  // A check stops here: the video is uploaded but never finished, so nothing is posted.
+  if (CHECK) return { video: start.video_id, published: false };
   await graph('POST', `${GRAPH}/${PAGE}/video_reels`, {
     upload_phase: 'finish',
     video_id: start.video_id,
@@ -101,7 +103,6 @@ async function main() {
   const result = { ...done, day: entry.day, date: entry.date };
   let failed = false;
   for (const [key, fn] of [['instagram', instagram], ['facebook', facebook]]) {
-    if (CHECK && key === 'facebook') continue;
     if (done[key]?.id) {
       console.log(`${entry.name}: ${key} already published`);
       continue;
