@@ -93,6 +93,12 @@ async function main() {
     const page = await graph('GET', `${GRAPH}/${PAGE}`, { fields: 'name,instagram_business_account' });
     const ig = await graph('GET', `${GRAPH}/${IG}`, { fields: 'username' });
     console.log(`token ok: page "${page.name}", instagram @${ig.username}`);
+    // Posting to the Page needs a Page token: /me is then the Page itself.
+    const me = await graph('GET', `${GRAPH}/me`, { fields: 'id,name' });
+    const kind = me.id === PAGE ? 'Page token' : `user token for "${me.name}" (Facebook posting needs the Page token)`;
+    console.log(`token type: ${kind}`);
+    const scopes = await graph('GET', `${GRAPH}/me/permissions`).catch(() => null);
+    if (scopes?.data) console.log(`granted: ${scopes.data.filter((p) => p.status === 'granted').map((p) => p.permission).join(', ')}`);
   }
   const entry = entries.find((e) => e.date === DATE);
   if (!entry) {
