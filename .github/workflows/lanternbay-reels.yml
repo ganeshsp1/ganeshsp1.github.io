@@ -13,6 +13,10 @@ on:
       date:
         description: "Calendar date to publish (YYYY-MM-DD, IST). Empty = today."
         required: false
+      check:
+        description: "Check only: validate token and IDs, prepare the Instagram reel, publish nothing."
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -36,8 +40,9 @@ jobs:
           IG_USER_ID: ${{ secrets.IG_USER_ID }}
           PAGE_ID: ${{ secrets.PAGE_ID }}
           DATE: ${{ inputs.date }}
+          CHECK: ${{ inputs.check && '--check' || '' }}
         run: |
-          node bayline/reels/publish.mjs --manifest bayline/reels/reels.json ${DATE:+--date "$DATE"}
+          node bayline/reels/publish.mjs --manifest bayline/reels/reels.json ${DATE:+--date "$DATE"} $CHECK
       - name: Record what was published
         # Also keeps the repo active, so GitHub doesn't pause the schedule after 60 quiet days.
         if: always()
