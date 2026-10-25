@@ -1,0 +1,49 @@
+# Daily Lantern Bay reel: Instagram + Facebook Page at about 19:00 IST.
+# Lives in the ganeshsp1.github.io repo as .github/workflows/lanternbay-reels.yml,
+# copied there by bayline/marketing/reels/deploy_publisher.sh.
+# Secrets: META_TOKEN (never-expiring Page token), IG_USER_ID, PAGE_ID.
+name: Lantern Bay reels
+
+on:
+  schedule:
+    # 13:20 UTC = 18:50 IST. Scheduled runs often start a few minutes late.
+    - cron: "20 13 * * *"
+  workflow_dispatch:
+    inputs:
+      date:
+        description: "Calendar date to publish (YYYY-MM-DD, IST). Empty = today."
+        required: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: lanternbay-reels
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Publish today's reel
+        env:
+          META_TOKEN: ${{ secrets.META_TOKEN }}
+          IG_USER_ID: ${{ secrets.IG_USER_ID }}
+          PAGE_ID: ${{ secrets.PAGE_ID }}
+          DATE: ${{ inputs.date }}
+        run: |
+          node bayline/reels/publish.mjs --manifest bayline/reels/reels.json ${DATE:+--date "$DATE"}
+      - name: Record what was published
+        # Also keeps the repo active, so GitHub doesn't pause the schedule after 60 quiet days.
+        if: always()
+        run: |
+          git config user.name "lanternbay-bot"
+          git config user.email "lanternbaygames@gmail.com"
+          git add bayline/reels/published.json 2>/dev/null || true
+          git diff --cached --quiet || git commit -m "Lantern Bay reel log $(TZ=Asia/Kolkata date +%F)"
+          git push
