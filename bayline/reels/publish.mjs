@@ -19,7 +19,7 @@ const arg = (flag, fallback) => {
 };
 const VERSION = process.env.GRAPH_VERSION || 'v24.0';
 const GRAPH = `https://graph.facebook.com/${VERSION}`;
-const TOKEN = process.env.META_TOKEN;
+let TOKEN = process.env.META_TOKEN;
 const IG = process.env.IG_USER_ID;
 const PAGE = process.env.PAGE_ID;
 const MANIFEST = arg('--manifest', 'reels.json');
@@ -87,16 +87,23 @@ async function facebook(entry) {
 
 async function main() {
   if (!TOKEN || !IG || !PAGE) throw new Error('META_TOKEN, IG_USER_ID and PAGE_ID are required');
+  // Facebook posting needs a Page token. Given a user token, swap it for the
+  // Page's own token. That only lasts as long as the user token, so warn.
+  const me = await graph('GET', `${GRAPH}/me`, { fields: 'id,name' });
+  if (me.id !== PAGE) {
+    const { access_token: pageToken } = await graph('GET', `${GRAPH}/${PAGE}`, { fields: 'access_token' });
+    if (!pageToken) throw new Error(`META_TOKEN is a user token for "${me.name}" and no Page token came back`);
+    TOKEN = pageToken;
+    console.log(`warning: META_TOKEN is a user token for "${me.name}"; using the Page token derived from it. Save the Page token as META_TOKEN so this keeps working after the user token expires.`);
+  } else {
+    console.log('token type: Page token');
+  }
   const entries = JSON.parse(fs.readFileSync(MANIFEST, 'utf8'));
   const log = fs.existsSync(LOG) ? JSON.parse(fs.readFileSync(LOG, 'utf8')) : {};
   if (CHECK) {
     const page = await graph('GET', `${GRAPH}/${PAGE}`, { fields: 'name,instagram_business_account' });
     const ig = await graph('GET', `${GRAPH}/${IG}`, { fields: 'username' });
     console.log(`token ok: page "${page.name}", instagram @${ig.username}`);
-    // Posting to the Page needs a Page token: /me is then the Page itself.
-    const me = await graph('GET', `${GRAPH}/me`, { fields: 'id,name' });
-    const kind = me.id === PAGE ? 'Page token' : `user token for "${me.name}" (Facebook posting needs the Page token)`;
-    console.log(`token type: ${kind}`);
     const scopes = await graph('GET', `${GRAPH}/me/permissions`).catch(() => null);
     if (scopes?.data) console.log(`granted: ${scopes.data.filter((p) => p.status === 'granted').map((p) => p.permission).join(', ')}`);
   }
